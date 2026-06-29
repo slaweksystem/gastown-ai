@@ -4,9 +4,8 @@ A monorepo that houses both the **infrastructure** for a self-hosted Git
 environment (Gitea + PostgreSQL) and the **operational codebase** for AI
 agents, workflows, and prompts.
 
-- The master repository is hosted on **GitHub**.
-- The self-hosted **Gitea** instance is used for local agent tasks and
-  operations.
+Gastown uses Gitea to create and operate project repositories. The
+`infrastructure/` stack runs that Gitea instance locally.
 
 ## Repository layout
 
@@ -95,8 +94,8 @@ Run `make help` inside `infrastructure/` to see the full list.
 
 ## Operational codebase
 
-The top-level `agents/`, `workflows/`, and `prompts/` directories are the
-home for the AI side of the factory:
+The top-level `agents/`, `workflows/`, and `prompts/` directories define
+how Gastown works. Gastown uses Gitea for project repos.
 
 - **`agents/`** – individual agent implementations (one subdirectory per
   agent, each with its own README, code, and tests).
