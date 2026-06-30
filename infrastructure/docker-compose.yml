@@ -57,6 +57,40 @@ services:
       retries: 5
       start_period: 30s
 
+  gastown:
+    build:
+      context: ./gastown
+      dockerfile: Dockerfile
+    container_name: gastown-gt
+    restart: unless-stopped
+    depends_on:
+      gitea:
+        condition: service_healthy
+    environment:
+      IS_SANDBOX: "1"
+      GIT_USER: ${GIT_USER:-Gastown}
+      GIT_EMAIL: ${GIT_EMAIL:-gastown@localhost}
+      GITEA_USER: ${GASTOWN_GIT_USER:-gastown}
+      GITEA_HOST: gitea:3000
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-}
+    volumes:
+      - gastown-workspace:/gt
+      - dolt-data:/gt/.dolt-data
+      - agent-home:/home/agent
+      - ./data/gastown-secrets:/run/gastown:ro
+    ports:
+      - "${GASTOWN_DASHBOARD_PORT:-8080}:8080"
+    networks:
+      - gastown
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "test", "-f", "/gt/mayor/town.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
 networks:
   gastown:
     driver: bridge
@@ -64,3 +98,6 @@ networks:
 volumes:
   postgres-data:
   gitea-data:
+  gastown-workspace:
+  dolt-data:
+  agent-home:

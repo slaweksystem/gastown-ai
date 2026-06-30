@@ -1,7 +1,5 @@
-# Gastown AI Factory – infrastructure operations
-#
-# Thin wrapper around `docker compose` so day-to-day operations stay short
-# and self-documenting. Run `make help` for the list of available targets.
+# Infrastructure operations (Docker Compose + Gitea bootstrap).
+# Gastown itself is configured inside the container — see README.
 
 SHELL        := /usr/bin/env bash
 .SHELLFLAGS  := -eu -o pipefail -c
@@ -14,8 +12,8 @@ DC := $(COMPOSE) --env-file $(ENV_FILE) -f $(COMPOSE_FILE)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help init up down restart logs ps status pull build \
-        psql gitea-shell create-admin list-admins backup clean nuke
+.PHONY: help init up down restart logs ps status pull build bootstrap \
+        psql backup clean nuke create-admin list-admins
 
 help: ## Show this help.
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -28,8 +26,13 @@ init: ## Create .env from .env.example if it does not yet exist.
 		echo "$(ENV_FILE) already exists, leaving it untouched."; \
 	fi
 
-up: ## Start the stack in the background.
-	$(DC) up -d
+up: ## Start the full stack (Gitea, bootstrap, Gastown).
+	$(DC) up -d db gitea --wait
+	@ENV_FILE=$(ENV_FILE) ./scripts/bootstrap-gitea.sh
+	$(DC) up -d gastown --build --wait
+
+bootstrap: ## Provision Gastown Gitea user, token, and org.
+	@ENV_FILE=$(ENV_FILE) ./scripts/bootstrap-gitea.sh
 
 down: ## Stop the stack and remove containers (keeps volumes).
 	$(DC) down
@@ -54,10 +57,7 @@ build: ## Rebuild local images (no-op if none are defined).
 psql: ## Open a psql shell against the Postgres database.
 	$(DC) exec db psql -U $${POSTGRES_USER:-gitea} -d $${POSTGRES_DB:-gitea}
 
-gitea-shell: ## Open a shell inside the Gitea container.
-	$(DC) exec gitea /bin/sh
-
-create-admin: ## Create the first Gitea admin user. Usage: make create-admin [ADMIN_USER=...] [ADMIN_EMAIL=...] [ADMIN_PASSWORD=...]
+create-admin: ## Create a Gitea admin user. Usage: make create-admin [ADMIN_USER=...] [ADMIN_EMAIL=...] [ADMIN_PASSWORD=...]
 	@user="$${ADMIN_USER:-gastown-admin}"; \
 	email="$${ADMIN_EMAIL:-admin@localhost}"; \
 	password="$${ADMIN_PASSWORD:-}"; \
